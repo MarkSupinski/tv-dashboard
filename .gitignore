@@ -1,0 +1,14 @@
+# Gradle build outputs
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# The repo root ignores data/ (its runtime-data dir) — keep the Android data layer.
+!app/src/main/java/com/microserve/batterytv/data/
