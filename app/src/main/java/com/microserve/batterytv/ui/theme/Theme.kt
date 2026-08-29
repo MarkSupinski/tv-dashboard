@@ -15,7 +15,7 @@ val BatteryPurple = Color(0xFFB388FF)
 
 val Background = Color(0xFF0E1523)
 val Surface = Color(0xFF17202F)
-val SurfaceFocus = Color(0xFF22304A)
+val SurfaceFocus = Color(0xFF2E4060)
 val TextPrimary = Color(0xFFE8EEF7)
 val TextSecondary = Color(0xFF9AA7BC)
 val GridLine = Color(0xFF2A3750)

@@ -2,6 +2,7 @@ package com.microserve.batterytv.ui.detail
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +28,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +42,10 @@ import com.microserve.batterytv.ui.components.MetricCard
 import com.microserve.batterytv.ui.components.SegmentedControl
 import com.microserve.batterytv.ui.components.SocHistoryChart
 import com.microserve.batterytv.ui.components.SocRing
-import com.microserve.batterytv.ui.theme.SurfaceFocus
+import com.microserve.batterytv.ui.theme.BatteryGreen
+import com.microserve.batterytv.ui.theme.BatteryTeal
 import com.microserve.batterytv.ui.theme.TextSecondary
+import kotlinx.coroutines.delay
 
 private val HISTORY_RANGES = listOf("hour", "day", "week")
 
@@ -57,6 +64,14 @@ fun DetailScreen(
 
     BackHandler { viewModel.backToDashboard() }
 
+    // Start the detail page with the Back chip focused so the user always
+    // knows where they are.
+    val backFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(100)
+        backFocus.requestFocus()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,7 +80,10 @@ fun DetailScreen(
     ) {
         // Header with a "back" hint.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            BackChip(onClick = { viewModel.backToDashboard() })
+            BackChip(
+                onClick = { viewModel.backToDashboard() },
+                modifier = Modifier.focusRequester(backFocus),
+            )
             Spacer(Modifier.width(20.dp))
             Column {
                 Text(
@@ -165,16 +183,27 @@ fun DetailScreen(
 }
 
 @Composable
-private fun BackChip(onClick: () -> Unit) {
+private fun BackChip(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var focused by remember { mutableStateOf(false) }
     Text(
         text = "‹ Back",
         fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        color = if (focused) MaterialTheme.colorScheme.primary else TextSecondary,
-        modifier = Modifier
+        color = if (focused) MaterialTheme.colorScheme.onPrimary else TextSecondary,
+        modifier = modifier
             .clip(RoundedCornerShape(50))
-            .background(if (focused) SurfaceFocus else MaterialTheme.colorScheme.surface)
+            .background(
+                if (focused) BatteryGreen
+                else MaterialTheme.colorScheme.surface,
+            )
+            .border(
+                width = if (focused) 3.dp else 1.dp,
+                color = if (focused) BatteryTeal else Color.Transparent,
+                shape = RoundedCornerShape(50),
+            )
             .focusable()
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
