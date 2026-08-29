@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.microserve.batterytv.data.BatteryStatus
 import com.microserve.batterytv.ui.AppViewModel
+import com.microserve.batterytv.ui.components.ChargeStateBadge
 import com.microserve.batterytv.ui.components.SocRing
 import com.microserve.batterytv.ui.theme.BatteryGreen
 import com.microserve.batterytv.ui.theme.SurfaceFocus
@@ -176,5 +177,7 @@ private fun BatteryCard(
             fontSize = 16.sp,
             color = TextSecondary,
         )
+        Spacer(Modifier.height(10.dp))
+        ChargeStateBadge(battery)
     }
 }

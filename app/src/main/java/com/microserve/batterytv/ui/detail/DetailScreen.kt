@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.microserve.batterytv.data.BatteryStatus
 import com.microserve.batterytv.ui.AppViewModel
 import com.microserve.batterytv.ui.components.CellVoltageBars
+import com.microserve.batterytv.ui.components.ChargeStateBadge
 import com.microserve.batterytv.ui.components.MetricCard
 import com.microserve.batterytv.ui.components.SegmentedControl
 import com.microserve.batterytv.ui.components.SocHistoryChart
@@ -96,6 +97,8 @@ fun DetailScreen(
                         fontSize = 14.sp,
                         color = TextSecondary,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    ChargeStateBadge(battery)
                 }
             }
         }
