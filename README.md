@@ -10,36 +10,56 @@ ECOWORTHY 314 Ah batteries and their state of charge.
 - **Detail page** — full telemetry (voltage, current, power, temperature,
   capacity, health), all per-cell voltages as a bar chart, and a **SOC history
   area chart** with **Hour / Day / Week** range buttons.
-- **Auto refresh** — polls the battery server every 60 seconds while running.
+- **Auto refresh** — polls Home Assistant every 60 seconds while running.
 - The remote **Back** button (or the *‹ Back* chip) returns to the dashboard.
 
 ## Architecture
 
 ```
-ECO-WORTHY batteries  ⇄  Python battery server (BLE, 60s capture + SQLite)
-                              ⇄  this Android app (HTTP/JSON, 60s poll)
+ECO-WORTHY batteries  ⇄  Home Assistant (HA Bluetooth + ecoworthy_battery HACS
+                        integration → per-field sensor entities, recorder history)
+                              ⇄  this Android app (HA REST API, HTTP/JSON, 60s poll)
 ```
 
-The Python server lives in `../ecoworthy-battery/battery_server.py` and runs on
-a machine near the batteries (Mac, Raspberry Pi, …). The TV app never touches
-Bluetooth — it just reads the server's REST API:
+The batteries are read by the `ecoworthy_battery` Home Assistant integration
+(see `../ha-ecoworthy-battery`, published separately) running on your HA host
+(e.g. a Home Assistant Yellow with a Bluetooth dongle). Every battery becomes a
+device whose sensors share the entity-id prefix `sensor.eco_worthy_0b_<device>_`
+(`_state_of_charge`, `_voltage`, `_current`, `_power`, `_temperature`,
+`_design_capacity`, `_state_of_health`, `_problem_code`, `_cell_<n>_voltage`).
+The TV app never touches Bluetooth — it just reads Home Assistant's REST API:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/batteries` | current status of every battery |
-| `GET /api/batteries/{address}/history?range=hour\|day\|week` | SOC/voltage/current series |
+| `GET /api/states` | all entity states; the app discovers battery sensors and groups them per battery |
+| `GET /api/history/period/{start}?filter_entity_id=sensor.…_state_of_charge&minimal_response` | recorded SOC history for hour/day/week |
+
+Every request uses `Authorization: Bearer <long-lived-access-token>`.
 
 ## Build
 
 Requirements: **Android Studio** (Jellyfish or newer), Android SDK 34.
 
 1. Open this folder (`tv-dashboard/`) in Android Studio.
-2. Set the IP/port of your battery server in `gradle.properties`:
+2. Create a Home Assistant **long-lived access token**:
+   HA → *Profile* → *Security* → *Long-lived access tokens* → *Create token*.
+3. Set the HA host/port in `gradle.properties` and put your token in the
+   git-ignored `tv-dashboard/local.properties` (so it never gets committed):
    ```properties
-   batteryServerHost=192.168.1.100
-   batteryServerPort=8234
+   # gradle.properties
+   haHost=homeassistant.local   # or your HA LAN IP, e.g. 192.168.1.50
+   haPort=8123
    ```
-3. Build the debug APK: *Build → Build Bundle(s)/APK(s) → Build APK(s)*
+   ```properties
+   # local.properties (git-ignored — keeps the token out of the repo)
+   haToken=eyJhbGciOi…           # the long-lived access token
+   ```
+   If your HA is reachable via mDNS this default host usually works; otherwise
+   use the HA IP (the TV must be on the same network). Discovery additionally
+   matches `haBatteryMarker` (default `ECO-WORTHY`) against sensor friendly
+   names, and `haEntityPrefix` (default `sensor.eco_worthy_0b_`) against
+   entity IDs, so renamed devices keep working.
+4. Build the debug APK: *Build → Build Bundle(s)/APK(s) → Build APK(s)*
    (or `./gradlew assembleDebug` from a terminal).
 
 The project uses the standard Gradle version catalog (`gradle/libs.versions.toml`);
@@ -56,13 +76,23 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 
 The app appears as **Battery Dashboard** in the TV launcher.
 
-## Run the server
+## Home Assistant setup
 
-```bash
-cd ../ecoworthy-battery
-python battery_server.py --host 0.0.0.0 --port 8234 --interval 60   # live BLE
-python battery_server.py --demo --port 8234                          # synthetic demo data
-```
+1. Install the `ecoworthy_battery` integration via HACS (custom repository
+   `MarkSupinski/ha-ecoworthy-battery`) and add it in
+   *Settings → Devices & Services → Add Integration → ECOWORTHY 0B Battery*.
+2. The integration reads the batteries over the HA Bluetooth integration every
+   60 s (configurable); the HA recorder stores the history the TV app charts.
+3. No standalone server needed any more — the old `battery_server.py` REST
+   service from the pre-HA setup is retired.
 
-`--demo` seeds two batteries with a week of history so you can try the app
-without batteries in range. See `../ecoworthy-battery/README.md` for details.
+## Troubleshooting
+
+- *"Home Assistant unreachable"* — wrong `haHost`/`haPort`, TV and HA on
+  different networks, or the HA instance is behind a firewall.
+- *"Home Assistant rejected the token (401)"* — `haToken` is empty, expired,
+  or invalid.
+- *"No batteries found"* — the HA integration isn't configured/loaded, the
+  batteries are out of BLE range, or `haEntityPrefix`/`haBatteryMarker` don't
+  match your entity IDs (check *Developer Tools → States* in HA).
+

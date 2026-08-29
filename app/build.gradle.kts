@@ -1,8 +1,22 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Machine-local secrets (e.g. the Home Assistant long-lived access token) are
+// read from the git-ignored local.properties so they never land in the repo.
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    FileInputStream(localPropsFile).use { localProps.load(it) }
+}
+val haToken: String = localProps.getProperty("haToken")
+    ?.takeIf { it.isNotBlank() }
+    ?: project.findProperty("haToken")?.toString().orEmpty()
 
 android {
     namespace = "com.microserve.batterytv"
@@ -16,16 +30,34 @@ android {
         versionName = "1.0"
         vectorDrawables { useSupportLibrary = true }
 
-        // Point the app at your battery server (overridable from gradle.properties).
+        // Point the app at the Home Assistant instance hosting the ECOWORTHY
+        // battery integration (overridable from gradle.properties).
         buildConfigField(
             "String",
-            "BATTERY_SERVER_HOST",
-            "\"${project.findProperty("batteryServerHost") ?: "192.168.1.100"}\"",
+            "HA_HOST",
+            "\"${project.findProperty("haHost") ?: "homeassistant.local"}\"",
         )
         buildConfigField(
             "int",
-            "BATTERY_SERVER_PORT",
-            (project.findProperty("batteryServerPort") ?: "8234").toString(),
+            "HA_PORT",
+            (project.findProperty("haPort") ?: "8123").toString(),
+        )
+        buildConfigField(
+            "String",
+            "HA_TOKEN",
+            "\"$haToken\"",
+        )
+        // Entity-id prefix / friendly-name marker used to discover the
+        // integration's battery sensors in Home Assistant.
+        buildConfigField(
+            "String",
+            "HA_ENTITY_PREFIX",
+            "\"${project.findProperty("haEntityPrefix") ?: "sensor.eco_worthy_0b_"}\"",
+        )
+        buildConfigField(
+            "String",
+            "HA_BATTERY_MARKER",
+            "\"${project.findProperty("haBatteryMarker") ?: "ECO-WORTHY"}\"",
         )
     }
 

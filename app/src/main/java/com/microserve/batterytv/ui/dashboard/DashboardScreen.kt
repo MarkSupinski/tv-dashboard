@@ -62,7 +62,7 @@ fun DashboardScreen(viewModel: AppViewModel) {
         )
         Spacer(Modifier.height(6.dp))
         val statusLine = when {
-            error != null && batteries.isEmpty() -> "Server unreachable — check the battery server"
+            error != null && batteries.isEmpty() -> "Home Assistant unreachable — check the host / token"
             error != null -> "Last update may be stale · $error"
             batteries.isEmpty() -> "No batteries reported yet"
             else -> "${batteries.size} battery(ies) · refresh every 60s"
@@ -86,7 +86,7 @@ fun DashboardScreen(viewModel: AppViewModel) {
             batteries.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        "No batteries found.\nStart the battery server, then press OK to retry.",
+                        "No batteries found.\nCheck that the ECOWORTHY integration is running in Home Assistant.",
                         color = TextSecondary,
                         fontSize = 18.sp,
                     )
